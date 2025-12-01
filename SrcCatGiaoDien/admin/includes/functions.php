@@ -1,5 +1,5 @@
 <?php
-// Functions để lấy dữ liệu
+// Functions để lấy dữ liệu từ database phpdata
 
 // Lấy thống kê tổng quan
 function getStats($conn) {
@@ -7,17 +7,17 @@ function getStats($conn) {
     
     try {
         // Tổng đơn hàng
-        $stmt = $conn->query("SELECT COUNT(*) as total FROM orders");
+        $stmt = $conn->query("SELECT COUNT(*) as total FROM Orders");
         $stats['total_orders'] = $stmt->fetch()['total'];
         
         // Tính % tăng trưởng đơn hàng (so với tuần trước)
         $stmt = $conn->query("
             SELECT 
                 COUNT(*) as current_week,
-                (SELECT COUNT(*) FROM orders 
+                (SELECT COUNT(*) FROM Orders 
                  WHERE created_at BETWEEN DATE_SUB(NOW(), INTERVAL 14 DAY) 
                  AND DATE_SUB(NOW(), INTERVAL 7 DAY)) as last_week
-            FROM orders 
+            FROM Orders 
             WHERE created_at >= DATE_SUB(NOW(), INTERVAL 7 DAY)
         ");
         $growth = $stmt->fetch();
@@ -26,14 +26,14 @@ function getStats($conn) {
             : 0;
         
         // Sản phẩm bán ra
-        $stmt = $conn->query("SELECT COALESCE(SUM(quantity), 0) as total FROM order_items");
+        $stmt = $conn->query("SELECT COALESCE(SUM(quantity), 0) as total FROM Order_Items");
         $stats['total_products_sold'] = $stmt->fetch()['total'];
         
         // Doanh thu
         $stmt = $conn->query("
             SELECT COALESCE(SUM(total_amount), 0) as revenue 
-            FROM orders 
-            WHERE status = 'completed'
+            FROM Orders 
+            WHERE status IN ('delivered', 'shipped', 'processing')
         ");
         $stats['revenue'] = $stmt->fetch()['revenue'];
         
@@ -41,8 +41,8 @@ function getStats($conn) {
         $stmt = $conn->query("
             SELECT 
                 COALESCE(SUM(total_amount), 0) as current_week
-            FROM orders 
-            WHERE status = 'completed' 
+            FROM Orders 
+            WHERE status IN ('delivered', 'shipped', 'processing')
             AND created_at >= DATE_SUB(NOW(), INTERVAL 7 DAY)
         ");
         $currentRevenue = $stmt->fetch()['current_week'];
@@ -50,8 +50,8 @@ function getStats($conn) {
         $stmt = $conn->query("
             SELECT 
                 COALESCE(SUM(total_amount), 0) as last_week
-            FROM orders 
-            WHERE status = 'completed' 
+            FROM Orders 
+            WHERE status IN ('delivered', 'shipped', 'processing')
             AND created_at BETWEEN DATE_SUB(NOW(), INTERVAL 14 DAY) 
             AND DATE_SUB(NOW(), INTERVAL 7 DAY)
         ");
@@ -64,7 +64,7 @@ function getStats($conn) {
         // Khách hàng
         $stmt = $conn->query("
             SELECT COUNT(*) as total 
-            FROM users 
+            FROM Users 
             WHERE role = 'customer'
         ");
         $stats['total_customers'] = $stmt->fetch()['total'];
@@ -73,11 +73,11 @@ function getStats($conn) {
         $stmt = $conn->query("
             SELECT 
                 COUNT(*) as current_week,
-                (SELECT COUNT(*) FROM users 
+                (SELECT COUNT(*) FROM Users 
                  WHERE role = 'customer' 
                  AND created_at BETWEEN DATE_SUB(NOW(), INTERVAL 14 DAY) 
                  AND DATE_SUB(NOW(), INTERVAL 7 DAY)) as last_week
-            FROM users 
+            FROM Users 
             WHERE role = 'customer' 
             AND created_at >= DATE_SUB(NOW(), INTERVAL 7 DAY)
         ");
@@ -85,6 +85,30 @@ function getStats($conn) {
         $stats['customers_growth'] = $growth['last_week'] > 0 
             ? round((($growth['current_week'] - $growth['last_week']) / $growth['last_week']) * 100) 
             : 0;
+        
+        // Tổng sản phẩm trong kho
+        $stmt = $conn->query("SELECT COUNT(*) as total FROM Products WHERE is_active = 1");
+        $stats['total_products'] = $stmt->fetch()['total'];
+        
+        // Giá trị tồn kho
+        $stmt = $conn->query("
+            SELECT COALESCE(SUM(price * stock_quantity), 0) as inventory_value 
+            FROM Products 
+            WHERE is_active = 1
+        ");
+        $stats['inventory_value'] = $stmt->fetch()['inventory_value'];
+        
+        // Đơn hàng chờ xử lý
+        $stmt = $conn->query("SELECT COUNT(*) as total FROM Orders WHERE status = 'pending'");
+        $stats['pending_orders'] = $stmt->fetch()['total'];
+        
+        // Trung bình giá trị đơn hàng
+        $stmt = $conn->query("
+            SELECT COALESCE(AVG(total_amount), 0) as avg_order 
+            FROM Orders 
+            WHERE status IN ('delivered', 'shipped', 'processing')
+        ");
+        $stats['avg_order_value'] = $stmt->fetch()['avg_order'];
         
     } catch(PDOException $e) {
         // Nếu có lỗi, trả về giá trị mặc định
@@ -95,7 +119,11 @@ function getStats($conn) {
             'revenue' => 0,
             'revenue_growth' => 0,
             'total_customers' => 0,
-            'customers_growth' => 0
+            'customers_growth' => 0,
+            'total_products' => 0,
+            'inventory_value' => 0,
+            'pending_orders' => 0,
+            'avg_order_value' => 0
         ];
     }
     
@@ -108,10 +136,11 @@ function getSalesChartData($conn) {
         $sql = "SELECT 
                     DATE_FORMAT(created_at, '%a') as day_name,
                     DATE_FORMAT(created_at, '%Y-%m-%d') as day_date,
-                    COALESCE(SUM(total_amount), 0) as total
-                FROM orders 
+                    COALESCE(SUM(total_amount), 0) as total,
+                    COUNT(*) as order_count
+                FROM Orders 
                 WHERE created_at >= DATE_SUB(NOW(), INTERVAL 7 DAY)
-                AND status IN ('completed', 'pending')
+                AND status IN ('delivered', 'shipped', 'processing', 'pending')
                 GROUP BY day_date, day_name
                 ORDER BY day_date";
         
@@ -125,7 +154,8 @@ function getSalesChartData($conn) {
             foreach($days as $day) {
                 $data[] = [
                     'day_name' => $day,
-                    'total' => 0
+                    'total' => 0,
+                    'order_count' => 0
                 ];
             }
         }
@@ -141,13 +171,17 @@ function getSalesChartData($conn) {
 function getTopProducts($conn, $limit = 4) {
     try {
         $sql = "SELECT 
-                    p.id,
+                    p.product_id,
                     p.name,
-                    p.image,
-                    COALESCE(SUM(oi.quantity), 0) as total_sold
-                FROM products p
-                LEFT JOIN order_items oi ON p.id = oi.product_id
-                GROUP BY p.id, p.name, p.image
+                    p.price,
+                    COALESCE(SUM(oi.quantity), 0) as total_sold,
+                    COALESCE(SUM(oi.quantity * oi.price_at_purchase), 0) as revenue
+                FROM Products p
+                LEFT JOIN Order_Items oi ON p.product_id = oi.product_id
+                LEFT JOIN Orders o ON oi.order_id = o.order_id
+                WHERE (o.created_at >= DATE_SUB(NOW(), INTERVAL 30 DAY) OR o.order_id IS NULL)
+                AND p.is_active = 1
+                GROUP BY p.product_id, p.name, p.price
                 ORDER BY total_sold DESC
                 LIMIT ?";
         
@@ -155,12 +189,117 @@ function getTopProducts($conn, $limit = 4) {
         $stmt->execute([$limit]);
         $products = $stmt->fetchAll();
         
-        // Tính growth giả định (có thể cải thiện sau)
+        // Nếu không đủ sản phẩm, lấy thêm từ Products
+        if(count($products) < $limit) {
+            $sql = "SELECT 
+                        product_id,
+                        name,
+                        price,
+                        0 as total_sold,
+                        0 as revenue
+                    FROM Products
+                    WHERE is_active = 1
+                    ORDER BY created_at DESC
+                    LIMIT ?";
+            $stmt = $conn->prepare($sql);
+            $stmt->execute([$limit]);
+            $products = $stmt->fetchAll();
+        }
+        
+        // Tính growth giả định
         foreach($products as &$product) {
             $product['growth'] = rand(10, 80);
         }
         
         return $products;
+        
+    } catch(PDOException $e) {
+        return [];
+    }
+}
+
+// Lấy đơn hàng gần đây
+function getRecentOrders($conn, $limit = 5) {
+    try {
+        $sql = "SELECT 
+                    o.order_id,
+                    o.customer_name,
+                    o.total_amount,
+                    o.status,
+                    o.created_at,
+                    COUNT(oi.order_item_id) as item_count
+                FROM Orders o
+                LEFT JOIN Order_Items oi ON o.order_id = oi.order_id
+                GROUP BY o.order_id
+                ORDER BY o.created_at DESC
+                LIMIT ?";
+        
+        $stmt = $conn->prepare($sql);
+        $stmt->execute([$limit]);
+        return $stmt->fetchAll();
+        
+    } catch(PDOException $e) {
+        return [];
+    }
+}
+
+// Lấy thống kê theo thương hiệu
+function getBrandStats($conn) {
+    try {
+        $sql = "SELECT 
+                    b.brand_name,
+                    COUNT(p.product_id) as product_count,
+                    COALESCE(SUM(oi.quantity), 0) as total_sold,
+                    COALESCE(SUM(oi.quantity * oi.price_at_purchase), 0) as revenue
+                FROM Brands b
+                LEFT JOIN Products p ON b.brand_id = p.brand_id
+                LEFT JOIN Order_Items oi ON p.product_id = oi.product_id
+                GROUP BY b.brand_id, b.brand_name
+                ORDER BY revenue DESC
+                LIMIT 5";
+        
+        $stmt = $conn->query($sql);
+        return $stmt->fetchAll();
+        
+    } catch(PDOException $e) {
+        return [];
+    }
+}
+
+// Lấy thống kê theo danh mục
+function getCategoryStats($conn) {
+    try {
+        $sql = "SELECT 
+                    c.category_name,
+                    COUNT(p.product_id) as product_count,
+                    COALESCE(SUM(oi.quantity), 0) as total_sold
+                FROM Categories c
+                LEFT JOIN Products p ON c.category_id = p.category_id
+                LEFT JOIN Order_Items oi ON p.product_id = oi.product_id
+                GROUP BY c.category_id, c.category_name
+                ORDER BY total_sold DESC";
+        
+        $stmt = $conn->query($sql);
+        return $stmt->fetchAll();
+        
+    } catch(PDOException $e) {
+        return [];
+    }
+}
+
+// Lấy trạng thái đơn hàng
+function getOrderStatusStats($conn) {
+    try {
+        $sql = "SELECT 
+                    status,
+                    COUNT(*) as count,
+                    SUM(total_amount) as total
+                FROM Orders
+                GROUP BY status
+                ORDER BY count DESC";
+        
+        $stmt = $conn->query($sql);
+        return $stmt->fetchAll();
         
     } catch(PDOException $e) {
         return [];
@@ -175,5 +314,17 @@ function formatMoney($amount) {
 // Format số lượng
 function formatNumber($number) {
     return number_format($number, 0, ',', '.');
+}
+
+// Format trạng thái đơn hàng
+function getStatusBadge($status) {
+    $badges = [
+        'pending' => '<span class="status-badge pending">Chờ xử lý</span>',
+        'processing' => '<span class="status-badge processing">Đang xử lý</span>',
+        'shipped' => '<span class="status-badge shipped">Đang giao</span>',
+        'delivered' => '<span class="status-badge delivered">Đã giao</span>',
+        'cancelled' => '<span class="status-badge cancelled">Đã hủy</span>'
+    ];
+    return $badges[$status] ?? $status;
 }
 ?>

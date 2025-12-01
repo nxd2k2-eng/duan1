@@ -2,10 +2,12 @@
 // Thông tin kết nối database
 define('DB_HOST', 'localhost');
 define('DB_USER', 'root');
-define('DB_PASS', 'mysql');  // Mật khẩu của bạn (thường để trống với XAMPP/WAMP)
-define('DB_NAME', 'duan1');  // Tên database của bạn
+define('DB_PASS', 'mysql');
+define('DB_NAME', 'phpdata');  // ✅ ĐỔI TÊN DATABASE MỚI
 
 // Kết nối database bằng PDO
+global $conn;
+
 try {
     $conn = new PDO(
         "mysql:host=" . DB_HOST . ";dbname=" . DB_NAME . ";charset=utf8mb4",
@@ -24,4 +26,5 @@ try {
 } catch(PDOException $e) {
     die("Lỗi kết nối database: " . $e->getMessage());
 }
+
 ?>
