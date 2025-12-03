@@ -124,7 +124,7 @@
             </button>
             <div class="collapse navbar-collapse" id="navbarCollapse">
                 <div class="navbar-nav mx-auto py-0">
-                    <a href="index.html" class="nav-item nav-link active">Trang chủ</a>
+                    <a href="index.php" class="nav-item nav-link active">Trang chủ</a>
                     <a href="shop.html" class="nav-item nav-link">Sản phẩm</a>
                     <a href="sale.html" class="nav-item nav-link text-warning">Sale 50%</a>
                     
@@ -138,7 +138,7 @@
                             <a href="#" class="dropdown-item">Puma</a>
                         </div>
                     </div>
-                    <a href="contact.html" class="nav-item nav-link">Liên hệ</a>
+                    <a href="contact.php" class="nav-item nav-link">Liên hệ</a>
                 </div>
             </div>
         </nav>

@@ -1,6 +1,6 @@
 <?php
 $array = [
-    "components\home\carousel.php",
+    // "components\home\carousel.php",
     "components\home\product-offer.php",
     "components\home\our-product.php",
     "components\home\product-banner.php",
