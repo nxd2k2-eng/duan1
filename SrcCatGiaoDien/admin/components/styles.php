@@ -508,7 +508,7 @@ body {
     color: #1e293b;
     margin-bottom: 4px;
     display: -webkit-box;
-    -webkit-line-clamp: 1;
+    /* -webkit-line-clamp: 1; */
     -webkit-box-orient: vertical;
     overflow: hidden;
 }
