@@ -175,9 +175,9 @@ $brands = $conn->query("SELECT * FROM Brands ORDER BY brand_name")->fetchAll();
                         </td>
                         <td>
                             <?php if($product['is_active']): ?>
-                                <span class="status-badge delivered">Hoạt động</span>
+                                <span class="status-badge delivered">Còn Hàng</span>
                             <?php else: ?>
-                                <span class="status-badge cancelled">Ẩn</span>
+                                <span class="status-badge cancelled">Hết Hàng</span>
                             <?php endif; ?>
                         </td>
                         <td>

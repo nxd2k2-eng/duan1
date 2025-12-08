@@ -58,4 +58,3 @@ INSERT INTO Order_Items (order_id,product_id,quantity,price_at_purchase) VALUES
 INSERT INTO Payments (order_id,method,amount,status,paid_at) VALUES
 (1,'momo',4150000,'completed',NOW());
 
-SELECT 'XONG 100%! Shop giày dép đã sẵn sàng demo thầy cô, đẹp lung linh luôn ạ!' AS HoanThanh;
