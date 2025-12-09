@@ -7,7 +7,7 @@ require_once 'Models/Database.php';
 
 $db = new Database(DB_HOST, DB_USER, DB_PASS, DB_NAME, DB_PORT);
 $connection = $db->connect();
-var_dump($db);
+// var_dump($db);
 
 require_once 'router.php';
 
