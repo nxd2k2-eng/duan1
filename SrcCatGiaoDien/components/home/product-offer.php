@@ -5,8 +5,8 @@
                 <div class="col-lg-6 wow fadeInLeft" data-wow-delay="0.2s">
                     <a href="#" class="d-flex align-items-center justify-content-between border bg-white rounded p-4">
                         <div>
-                            <p class="text-muted mb-3">Find The Best Camera for You!</p>
-                            <h3 class="text-primary">Smart Camera</h3>
+                            <p class="text-muted mb-3">Tìm Đôi Giày Tốt Nhất Cho Bạn!</p>
+                            <h3 class="text-primary">Giày Sneaker</h3>
                             <h1 class="display-3 text-secondary mb-0">40% <span
                                     class="text-primary fw-normal">Off</span></h1>
                         </div>
@@ -16,8 +16,8 @@
                 <div class="col-lg-6 wow fadeInRight" data-wow-delay="0.3s">
                     <a href="#" class="d-flex align-items-center justify-content-between border bg-white rounded p-4">
                         <div>
-                            <p class="text-muted mb-3">Find The Best Whatches for You!</p>
-                            <h3 class="text-primary">Smart Whatch</h3>
+                            <p class="text-muted mb-3">Tìm Giày Dép Phù Hợp Nhất Cho Bạn!</p>
+                            <h3 class="text-primary">Giày Sandal</h3>
                             <h1 class="display-3 text-secondary mb-0">20% <span
                                     class="text-primary fw-normal">Off</span></h1>
                         </div>
