@@ -1,35 +1,43 @@
-<?php 
-class Database{
-    private $host ;
-    private $user ;
-    private $pass ;
-    private $dbname ;
-    private $port ;
+<?php
+
+class Database
+{
+    private $db_host;
+
+    private $db_user;
+
+    private $db_name;
+
+    private $db_port;
+
+    private $db_pass;
+
     private $connection;
 
-    public function __construct($host, $user, $pass, $dbname, $port = '3306'){
-        $this->host = $host;
-        $this->user = $user;
-        $this->pass = $pass;
-        $this->dbname = $dbname;
-        $this->port = $port;
-    } 
-    public function connect(){
-        try{
-            $this->connection = new PDO("mysql:host=$this->host;port=$this->port;dbname=$this->dbname", $this->user, $this->pass);
+    public function __construct($db_host, $db_user, $db_pass, $db_name, $db_port)
+    {
+        $this->db_host = $db_host;
+        $this->db_user = $db_user;
+        $this->db_pass = $db_pass;
+        $this->db_name = $db_name;
+        $this->db_port = $db_port;
+    }
+
+    public function connect()
+    {
+        try {
+            $this->connection = new PDO("mysql:host=$this->db_host;port=$this->db_port;dbname=$this->db_name", $this->db_user, $this->db_pass);
             $this->connection->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+            // echo "Kết nối DB thành công";
             return $this->connection;
-        } catch (PDOException $e){
-            echo "Connection failed: " . $e->getMessage();
+        } catch (Exception $e) {
+            echo "Kết nối không thành công: " . $e->getMessage() . " ở file:" . $e->getLine() . " tại dòng:" . $e->getFile();
             return null;
         }
     }
-    public function disconnect(){
-        if($this->connection != null){
-            $this->connection = null;
-            return $this->connection;
-        }
 
-    }  
+    public function disconnect()
+    {
+        $this->connection = null;
+    }
 }
-?>

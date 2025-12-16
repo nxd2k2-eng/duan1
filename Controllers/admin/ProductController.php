@@ -1,93 +1,206 @@
 <?php
-require_once __DIR__ . '/../Models/ProductModel.php';
 
-class ProductController {
-    private $model;
+class ProductController
+{
 
-    public function __construct($conn) {
-        $this->model = new ProductModel($conn);
+    private $connection;
+
+    private $productModel;
+
+    public function __construct($connection)
+    {
+        $this->connection = $connection;
+        $this->productModel = new Product($connection);
     }
 
-    public function index() {
-        $page = max(1, $_GET['page'] ?? 1);
-        $limit = 10;
-        $offset = ($page - 1) * $limit;
-
-        $data = $this->model->getAll([
-            'limit' => $limit,
-            'offset' => $offset,
-            'search' => $_GET['search'] ?? '',
-            'category' => $_GET['category'] ?? '',
-            'brand' => $_GET['brand'] ?? ''
-        ]);
-
-        $products = $data['products'];
-        $total = $data['total'];
-        $totalPages = ceil($total / $limit);
-
-        $categories = $this->model->getCategories();
-        $brands = $this->model->getBrands();
-
-        // Truyền biến sang view
-        require_once __DIR__ . '/../Views/products/list.php';
+    public function index()
+    {
+        $page = isset($_GET['page']) ? (int) $_GET['page'] : 1;
+        $keyword = isset($_GET['keyword']) ? trim($_GET['keyword']) : '';
+        $productList = $this->productModel->getAllProducts($page, 10, $keyword, 'desc');
+        require_once "admin/product.php";
     }
 
-    // Xử lý AJAX (add, edit, delete, get one)
-    public function ajax() {
-        header('Content-Type: application/json');
+    public function create()
+    {
+        $categories = $this->productModel->getAllCategories();
+        require_once "admin/product-add.php";
+    }
 
-        if (!isset($_SESSION['admin_logged_in'])) {
-            echo json_encode(['success' => false, 'message' => 'Unauthorized']);
+
+
+    public function store()
+    {
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            header("Location:?role=admin&module=products");
             exit;
         }
 
-        $action = $_POST['action'] ?? '';
+        // 1️⃣ Lấy dữ liệu từ form
+        $title = trim($_POST['title']);
+        $category_id = (int) $_POST['category_id'];
+        $price = (float) $_POST['price'];
+        $sale_price = !empty($_POST['sale_price']) ? (float) $_POST['sale_price'] : null;
+        $short_description = $_POST['short_description'] ?? '';
+        $description = $_POST['description'] ?? '';
+        $brand = $_POST['brand'] ?? '';
+        $is_active = (int) $_POST['is_active'];
 
-        switch ($action) {
-            case 'get':
-                $product = $this->model->find($_POST['id']);
-                echo json_encode($product ?: ['success' => false]);
-                break;
+        // Tạo slug tự động từ title
+        $slug = $this->generateSlug($title);
 
-            case 'create':
-                $data = [
-                    'name' => $_POST['name'],
-                    'slug' => $_POST['slug'],
-                    'description' => $_POST['description'] ?? '',
-                    'price' => $_POST['price'],
-                    'stock_quantity' => $_POST['stock_quantity'],
-                    'category_id' => $_POST['category_id'],
-                    'brand_id' => $_POST['brand_id'],
-                    'is_active' => $_POST['is_active'] ?? 1
-                ];
-                $result = $this->model->create($data);
-                echo json_encode(['success' => $result, 'message' => $result ? 'Thêm thành công!' : 'Lỗi']);
-                break;
+        // Upload ảnh
+        $imagePath = null;
+        if (!empty($_FILES['image']['name'])) {
+            $uploadDir = 'uploads/products/';
+            if (!is_dir($uploadDir)) {
+                mkdir($uploadDir, 0777, true);
+            }
 
-            case 'update':
-                $data = [
-                    'name' => $_POST['name'],
-                    'slug' => $_POST['slug'],
-                    'description' => $_POST['description'] ?? '',
-                    'price' => $_POST['price'],
-                    'stock_quantity' => $_POST['stock_quantity'],
-                    'category_id' => $_POST['category_id'],
-                    'brand_id' => $_POST['brand_id'],
-                    'is_active' => $_POST['is_active'] ?? 1
-                ];
-                $result = $this->model->update($_POST['id'], $data);
-                echo json_encode(['success' => $result, 'message' => $result ? 'Cập nhật thành công!' : 'Lỗi']);
-                break;
+            $fileName = time() . '_' . $_FILES['image']['name'];
+            $imagePath = $uploadDir . $fileName;
+            move_uploaded_file($_FILES['image']['tmp_name'], $imagePath);
+        }
 
-            case 'delete':
-                $result = $this->model->delete($_POST['id']);
-                echo json_encode(['success' => $result, 'message' => $result ? 'Xóa thành công!' : 'Lỗi']);
-                break;
+        // Gửi dữ liệu sang Model
+        $this->productModel->createProduct([
+            'title' => $title,
+            'price' => $price,
+            'sale_price' => $sale_price,
+            'category_id' => $category_id,
+            'short_description' => $short_description,
+            'description' => $description,
+            'brand' => $brand,
+            'slug' => $slug,
+            'image' => $imagePath,
+            'is_active' => $is_active
+        ]);
 
-            default:
-                echo json_encode(['success' => false, 'message' => 'Action không hợp lệ']);
+        // Quay lại danh sách
+        header("Location:?role=admin&module=products");
+        exit;
+    }
+
+    public function edit()
+    {
+        $id = $_GET['id'] ?? 0;
+        if (!$id) {
+            header("Location:index.php?role=admin&module=products");
+            exit;
+        }
+
+        $product = $this->productModel->getOneProduct($id);
+        $categories = $this->productModel->getAllCategories();
+
+        require_once "admin/product-edit.php";
+    }
+
+
+    public function update()
+    {
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            header("Location:index.php?role=admin&module=products");
+            exit;
+        }
+
+        $id = (int) $_POST['id'];
+        $title = trim($_POST['title']);
+        $category_id = (int) $_POST['category_id'];
+        $price = (float) $_POST['price'];
+        $sale_price = $_POST['sale_price'] !== '' ? (float) $_POST['sale_price'] : null;
+        $short_description = $_POST['short_description'] ?? '';
+        $description = $_POST['description'] ?? '';
+        $brand = $_POST['brand'] ?? '';
+        $is_active = (int) $_POST['is_active'];
+
+        $slug = $this->generateSlug($title);
+
+        // Lấy sản phẩm cũ
+        $product = $this->productModel->getOneProduct($id);
+        $imagePath = $product['image'];
+
+        // Upload ảnh mới
+        if (!empty($_FILES['image']['name'])) {
+
+            if ($imagePath && file_exists($imagePath)) {
+                unlink($imagePath);
+            }
+
+            $uploadDir = 'uploads/products/';
+            if (!is_dir($uploadDir)) {
+                mkdir($uploadDir, 0777, true);
+            }
+
+            $fileName = time() . '_' . $_FILES['image']['name'];
+            $imagePath = $uploadDir . $fileName;
+            move_uploaded_file($_FILES['image']['tmp_name'], $imagePath);
+        }
+
+        // Update DB
+        $this->productModel->updateProduct([
+            'id' => $id,
+            'title' => $title,
+            'category_id' => $category_id,
+            'price' => $price,
+            'sale_price' => $sale_price,
+            'short_description' => $short_description,
+            'description' => $description,
+            'brand' => $brand,
+            'slug' => $slug,
+            'image' => $imagePath,
+            'is_active' => $is_active
+        ]);
+
+        header("Location:index.php?role=admin&module=products");
+        exit;
+    }
+
+
+    public function delete()
+    {
+        $id = $_GET['id'] ?? 0;
+        if (!$id) {
+            header("Location:index.php?role=admin&module=products");
+            exit;
+        }
+
+        $product = $this->productModel->getOneProduct($id);
+
+        if ($product && $product['image'] && file_exists($product['image'])) {
+            unlink($product['image']);
+        }
+
+        $this->productModel->hardDeleteProduct($id);
+
+        header("Location:index.php?role=admin&module=products");
+        exit;
+    }
+
+
+    public function updateActive()
+    {
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            echo json_encode(['success' => false]);
+            exit;
+        }
+
+        $id = $_POST['id'] ?? 0;
+        $status = $_POST['status'] ?? 0;
+
+        if ($id) {
+            $this->productModel->updateActiveStatus($id, $status);
+            echo json_encode(['success' => true]);
+        } else {
+            echo json_encode(['success' => false]);
         }
         exit;
     }
+
+    private function generateSlug($string)
+    {
+        $string = strtolower($string);
+        $string = preg_replace('/[^a-z0-9\s-]/u', '', $string);
+        $string = preg_replace('/[\s-]+/', '-', $string);
+        return trim($string, '-');
+    }
 }
-?>
