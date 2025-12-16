@@ -23,7 +23,7 @@
                     </div>
                     <div>
                         <h4 class="text-white">Liên hệ với chúng tôi</h4>
-                        <p class="mb-2">lumos@gmail.com</p>
+                        <p class="mb-2">shoezct@gmail.com</p>
                     </div>
                 </div>
             </div>
@@ -36,7 +36,7 @@
                     </div>
                     <div>
                         <h4 class="text-white">Số điện thoại</h4>
-                        <p class="mb-2">(+012) 3456 7890</p>
+                        <p class="mb-2">(+84) 99999999</p>
                     </div>
                 </div>
             </div>
@@ -48,7 +48,7 @@
                         <i class="fab fa-firefox-browser fa-2x text-primary"></i>
                     </div>
                     <div>
-                        <h4 class="text-white">Lumos.com</h4>
+                        <h4 class="text-white">shoez.com</h4>
                         <p class="mb-2">Hỗ trợ trực tuyến 24/7</p>
                     </div>
                 </div>
@@ -60,7 +60,7 @@
                 <div class="footer-item d-flex flex-column">
                     <div class="footer-item">
                         <h4 class="text-primary mb-4">Tin tức</h4>
-                        <p class="mb-3">Cập nhật những bài viết mới nhất về sản phẩm và xu hướng từ Lumos.</p>
+                        <p class="mb-3">Cập nhật những bài viết mới nhất về sản phẩm từ shoez.</p>
                         <div class="position-relative mx-auto rounded-pill">
                             <input class="form-control rounded-pill w-100 py-3 ps-4 pe-5" type="text"
                                 placeholder="Nhập email của bạn">
@@ -122,8 +122,8 @@
             <div class="col-md-6 text-center text-md-start mb-md-0">
                 <span class="text-white">
                     <a href="#" class="border-bottom text-white">
-                        <i class="fas fa-copyright text-light me-2"></i>Lumos
-                    </a>, Tất cả các quyền được bảo lưu.
+                        <i class="fas fa-copyright text-light me-2"></i>shoez
+                    </a>
                 </span>
             </div>
 

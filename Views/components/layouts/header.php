@@ -57,7 +57,8 @@
             <div class="d-inline-flex align-items-center">
                 <a href="" class="navbar-brand p-0">
                     <h1 class="display-5 text-primary m-0">
-                        <i class="fas fa-glasses text-secondary me-2"></i>LUMOS
+                        <!-- <i class="fas fa-glasses text-secondary me-2"></i>SHOEZ -->
+                        SHOEZ
                     </h1>
                 </a>
             </div>
@@ -67,7 +68,7 @@
             <div class="position-relative ps-4">
                 <div class="d-flex border rounded-pill">
                     <input class="form-control border-0 rounded-pill w-100 py-3" type="text"
-                        placeholder="Tìm kính bạn muốn?">
+                        placeholder="Giày bạn cần tìm là?">
                     <select class="form-select text-dark border-0 border-start rounded-0 p-3" style="width: 200px;">
                         <option value="">Danh mục</option>
                         <?php foreach ($categoriesAll as $category): ?>
@@ -168,7 +169,7 @@
                         </ul>
                     </div>
                     <a href="" class="btn btn-secondary rounded-pill py-2 px-4 mb-3 mb-lg-0">
-                        <i class="fa fa-phone-alt me-2"></i> 0813349216
+                        <i class="fa fa-phone-alt me-2"></i> 0999999999
                     </a>
                 </div>
             </nav>
